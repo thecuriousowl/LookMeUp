@@ -77,5 +77,15 @@ namespace LookMeUp
                 System.IO.File.WriteAllLines(@"C:/temp/usersig.txt", sb);
             }
         }
+
+        public static bool IsMember(User user, List<DirectoryObject> group)
+        {
+            bool result = false;
+            foreach(var member in group)
+            {
+                if (user.Id == member.Id) { result = true; }
+            }
+            return result;
+        }
     }
 }
