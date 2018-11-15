@@ -22,27 +22,20 @@ namespace LookMeUp
 
             String search = "Id,DisplayName,Mail,JobTitle,Department,StreetAddress,City,State,PostalCode,Country,BusinessPhones,MobilePhone";
 
+            Console.WriteLine("1 of 5     Retrieving user details. . . ");
             var me = graphClient.Me.Request().Select(search).GetAsync().Result;
-            var cre = graphClient.Groups["9dea13e9-e5cf-49bb-b725-f7eb11507c1b"].Members.Request().GetAsync().Result;
-            var creUsers = new List<DirectoryObject>();
-            creUsers.AddRange(cre.CurrentPage);
-            while(cre.NextPageRequest != null)
-            {
-                cre = cre.NextPageRequest.GetAsync().Result;
-                creUsers.AddRange(cre.CurrentPage);
-            }
-            
-            bool isCredo = false;
-            bool isExcluded = false;
 
-            foreach(var user in creUsers)
-            {
-                if (user.Id == me.Id)
-                {
-                    isCredo = true;
-                }
-            }
-            if (me.Mail.Contains("bluerubicon")) { isExcluded = true; }
+            Console.WriteLine("2 of 5     Retrieving group memberships");
+            var cre = ParseGroup("9dea13e9-e5cf-49bb-b725-f7eb11507c1b");
+            var tbr = ParseGroup("902c612c-145e-42f5-bf2d-e67ceec05c90");
+            var murica = ParseGroup("ea26b5f0-b9ad-4b72-9d77-fc247925dda1");
+
+            String where = "0";                             // base case for A4 templates
+
+            if (IsMember(me, cre)) { where = "1"; Console.WriteLine("3 of 5     Credo Account"); }         // credo templates
+            else if (IsMember(me, tbr)) { where = "2"; Console.WriteLine("3 of 5     TBR Account"); }    // tbr no templates
+            else if (IsMember(me, murica)) { where = "3"; Console.WriteLine("3 of 5     NA Account"); } // letter templates
+            else { where = "0"; Console.WriteLine("3 of 5     OffNet Account"); }                           // base case for A4 templates
 
             List<String> sb = new List<String>();
             
@@ -50,6 +43,7 @@ namespace LookMeUp
             sb.Add(me.DisplayName );            // index 0
             sb.Add(me.JobTitle );               // index 1
             sb.Add(me.Department );             // index 2
+
             // location Info
             sb.Add(me.StreetAddress );
             sb.Add(me.City );
@@ -58,10 +52,9 @@ namespace LookMeUp
             sb.Add(me.Country );                // index 7
             sb.Add((me.BusinessPhones).First());
             sb.Add(me.MobilePhone);
-            if (isCredo) { sb.Add("1"); }
-            else if(isExcluded) { sb.Add("2"); }
-            else { sb.Add("0"); }
+            sb.Add(where);
 
+            Console.WriteLine("4 of 5     Creating output directory and writing to file.");
             if(System.IO.File.Exists("C:/temp/usersig.txt"))
             {
                 System.IO.File.Delete("C:/temp/usersig.txt");
@@ -76,7 +69,13 @@ namespace LookMeUp
                 System.IO.Directory.CreateDirectory("C:/temp");
                 System.IO.File.WriteAllLines(@"C:/temp/usersig.txt", sb);
             }
+            Console.WriteLine("5 of 5     Complete");
         }
+
+
+
+
+        // Helper Functions
 
         public static bool IsMember(User user, List<DirectoryObject> group)
         {
@@ -84,6 +83,36 @@ namespace LookMeUp
             foreach(var member in group)
             {
                 if (user.Id == member.Id) { result = true; }
+            }
+            return result;
+        }
+
+        public static List<DirectoryObject> ParseGroup(String groupID)
+        {
+            GraphServiceClient thisClient = Authentication.GetAuthenticatedClient();
+
+            List<DirectoryObject> result = new List<DirectoryObject>();
+            List<DirectoryObject> request = new List<DirectoryObject>();
+            var root = thisClient.Groups[groupID].Members.Request().GetAsync().Result;
+
+            // build full member list of member objects
+            request.AddRange(root.CurrentPage);
+            while(root.NextPageRequest != null)
+            {
+                root = root.NextPageRequest.GetAsync().Result;
+                request.AddRange(root.CurrentPage);
+            }
+
+            foreach(var dirObject in request)
+            {
+                if(dirObject.ODataType == "#microsoft.graph.group")
+                {
+                    result.AddRange(ParseGroup(dirObject.Id));
+                }
+                else
+                {
+                    result.Add(dirObject);
+                }
             }
             return result;
         }

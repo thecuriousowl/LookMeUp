@@ -50,7 +50,6 @@ namespace LookMeUp.Controllers
             return graphClient;
         }
 
-
         /// <summary>
         /// Get Token for User.
         /// </summary>
