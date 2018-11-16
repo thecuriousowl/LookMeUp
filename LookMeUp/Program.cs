@@ -72,9 +72,6 @@ namespace LookMeUp
             Console.WriteLine("5 of 5     Complete");
         }
 
-
-
-
         // Helper Functions
 
         public static bool IsMember(User user, List<DirectoryObject> group)

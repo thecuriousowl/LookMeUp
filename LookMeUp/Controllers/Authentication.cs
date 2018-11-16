@@ -78,6 +78,5 @@ namespace LookMeUp.Controllers
 
             return UserToken;
         }
-
     }
 }
